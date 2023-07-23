@@ -16,7 +16,7 @@ app.use("/", express.static(path.join(__dirname, "angular")));
 
 app.use("/api", routes);
 app.use((req, res, next) => {
-  res.sendFile(path.join(__dirname, "angular", index.html));
+  res.sendFile(path.join(__dirname, "angular", "index.html"));
 });
 
 mongoose.connect(mongoString, {
