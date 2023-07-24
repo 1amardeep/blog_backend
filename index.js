@@ -11,7 +11,7 @@ const mongoString = process.env.DATABASE_URL;
 
 const app = express();
 app.use(bodyParser.json());
-//app.use(cors());
+app.use(cors());
 app.use("/", express.static(path.join(__dirname, "angular")));
 
 app.use("/api", routes);
