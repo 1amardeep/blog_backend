@@ -9,6 +9,7 @@ router.post("/post", async (req, res) => {
   const data = new Model({
     title: req.body.title,
     description: req.body.description,
+    category: req.body.category,
     date: new Date(),
   });
   try {
