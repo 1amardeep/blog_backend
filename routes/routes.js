@@ -1,4 +1,5 @@
-const Model = require("../model/model");
+const BlogModel = require("../model/blog");
+const CategoryModel = require("../model/category");
 
 const express = require("express");
 
@@ -6,7 +7,7 @@ const router = express.Router();
 
 //Post Method
 router.post("/post", async (req, res) => {
-  const data = new Model({
+  const data = new BlogModel({
     title: req.body.title,
     description: req.body.description,
     category: req.body.category,
@@ -22,7 +23,7 @@ router.post("/post", async (req, res) => {
 
 //Get all Method
 router.get("/getAllBlog", async (req, res) => {
-  const blog = await Model.find();
+  const blog = await BlogModel.find();
   res.status(200).send(blog);
 });
 
@@ -32,9 +33,9 @@ router.get("/getBlogByCategory/:category", async (req, res) => {
     const category = req.params.category;
     let blogs;
     if (category === "All") {
-      blogs = await Model.find();
+      blogs = await BlogModel.find();
     } else {
-      blogs = await Model.find({
+      blogs = await BlogModel.find({
         category,
       });
     }
@@ -54,4 +55,25 @@ router.delete("/deleteBlog/:id", (req, res) => {
   res.send("Delete by ID API");
 });
 
+router.get("/getSubjectCategory", async (req, res) => {
+  try {
+    const categories = await CategoryModel.find();
+    res.status(200).send(categories);
+  } catch (err) {
+    res.status(500).send("Error fetching categories.");
+  }
+});
+
+router.post("/postSubjectCategory", async (req, res) => {
+  const data = new CategoryModel({
+    value: req.body.value,
+    viewValue: req.body.viewValue,
+  });
+  try {
+    const dataToSave = await data.save();
+    res.status(200).json(dataToSave);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 module.exports = router;
