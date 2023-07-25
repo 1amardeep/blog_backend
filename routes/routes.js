@@ -27,8 +27,21 @@ router.get("/getAllBlog", async (req, res) => {
 });
 
 //Get by ID Method
-router.get("/getOneBlog/:id", (req, res) => {
-  res.send(req.params.id);
+router.get("/getBlogByCategory/:category", async (req, res) => {
+  try {
+    const category = req.params.category;
+    let blogs;
+    if (category === "All") {
+      blogs = await Model.find();
+    } else {
+      blogs = await Model.find({
+        category,
+      });
+    }
+    res.status(200).send(blogs);
+  } catch (err) {
+    res.status(500).send("Error fetching blogs by category.");
+  }
 });
 
 //Update by ID Method
