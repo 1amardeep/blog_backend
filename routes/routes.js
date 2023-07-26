@@ -1,4 +1,4 @@
-const BlogModel = require("../model/blog");
+const QuestionModel = require("../model/question");
 const CategoryModel = require("../model/category");
 
 const express = require("express");
@@ -7,7 +7,7 @@ const router = express.Router();
 
 //Post Method
 router.post("/post", async (req, res) => {
-  const data = new BlogModel({
+  const data = new QuestionModel({
     title: req.body.title,
     description: req.body.description,
     category: req.body.category,
@@ -22,36 +22,36 @@ router.post("/post", async (req, res) => {
 });
 
 //Get all Method
-router.get("/getAllBlog", async (req, res) => {
-  const blog = await BlogModel.find();
-  res.status(200).send(blog);
+router.get("/getAllQuestion", async (req, res) => {
+  const question = await QuestionModel.find();
+  res.status(200).send(question);
 });
 
 //Get by ID Method
-router.get("/getBlogByCategory/:category", async (req, res) => {
+router.get("/getQuestionByCategory/:category", async (req, res) => {
   try {
     const category = req.params.category;
-    let blogs;
+    let questions;
     if (category === "All") {
-      blogs = await BlogModel.find();
+      questions = await QuestionModel.find();
     } else {
-      blogs = await BlogModel.find({
+      questions = await QuestionModel.find({
         category,
       });
     }
-    res.status(200).send(blogs);
+    res.status(200).send(questions);
   } catch (err) {
-    res.status(500).send("Error fetching blogs by category.");
+    res.status(500).send("Error fetching questions by category.");
   }
 });
 
 //Update by ID Method
-router.patch("/updateBlog/:id", (req, res) => {
+router.patch("/updateQuestion/:id", (req, res) => {
   res.send("Update by ID API");
 });
 
 //Delete by ID Method
-router.delete("/deleteBlog/:id", (req, res) => {
+router.delete("/deleteQuestion/:id", (req, res) => {
   res.send("Delete by ID API");
 });
 
