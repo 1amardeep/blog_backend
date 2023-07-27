@@ -27,21 +27,24 @@ router.get("/getAllQuestion", async (req, res) => {
   res.status(200).send(question);
 });
 
-//Get by ID Method
-router.get("/getQuestionByCategory/:category", async (req, res) => {
+//post by getQuestionByFilterCategory
+router.post("/getQuestionByFilterCategory", async (req, res) => {
+  const category = req.body.category;
+  const pageIndex = req.body.pageIndex;
+  const pageSize = req.body.pageSize;
+
   try {
-    const category = req.params.category;
-    let questions;
-    if (category === "All") {
-      questions = await QuestionModel.find();
-    } else {
-      questions = await QuestionModel.find({
-        category,
-      });
-    }
-    res.status(200).send(questions);
+    let query = category === "All" ? {} : { category };
+
+    const questions = await QuestionModel.find(query)
+      .skip(pageIndex * pageSize)
+      .limit(pageSize);
+
+    const count = await QuestionModel.countDocuments(query);
+
+    res.status(200).send({ questions, count });
   } catch (err) {
-    res.status(500).send("Error fetching questions by category.");
+    res.status(500).send(err);
   }
 });
 
