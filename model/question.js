@@ -17,6 +17,10 @@ const questionSchema = new mongoose.Schema({
     require: true,
     type: Date,
   },
+  color: {
+    required: true,
+    type: String,
+  },
 });
 
 module.exports = mongoose.model("Question", questionSchema);

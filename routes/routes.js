@@ -11,6 +11,7 @@ router.post("/post", async (req, res) => {
     title: req.body.title,
     description: req.body.description,
     category: req.body.category,
+    color: req.body.color,
     date: new Date(),
   });
   try {
@@ -71,6 +72,7 @@ router.post("/postSubjectCategory", async (req, res) => {
   const data = new CategoryModel({
     value: req.body.value,
     viewValue: req.body.viewValue,
+    color: req.body.color,
   });
   try {
     const dataToSave = await data.save();
@@ -79,4 +81,31 @@ router.post("/postSubjectCategory", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
+router.get("/getAnalyticsData", async (req, res) => {
+  try {
+    const result = await QuestionModel.aggregate([
+      {
+        $group: {
+          _id: { category: "$category", color: "$color" },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          color: "$_id.color",
+          category: "$_id.category",
+          count: 1,
+        },
+      },
+    ]);
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error fetching data:", err);
+    res.status(500).json({ error: "Error fetching data" });
+  }
+});
+
 module.exports = router;

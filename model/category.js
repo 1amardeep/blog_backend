@@ -9,6 +9,10 @@ const categorySchema = new mongoose.Schema({
     required: true,
     type: String,
   },
+  color: {
+    required: true,
+    type: String,
+  },
 });
 
 module.exports = mongoose.model("Category", categorySchema);
