@@ -6,7 +6,6 @@ const routes = require("./routes/routes");
 const bodyParser = require("body-parser");
 const path = require("path");
 const PORT = process.env.PORT || 3000;
-console.log(process.env.DATABASE_URL);
 const mongoString = process.env.DATABASE_URL;
 
 const app = express();

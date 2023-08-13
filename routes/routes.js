@@ -1,12 +1,18 @@
 const QuestionModel = require("../model/question");
 const CategoryModel = require("../model/category");
+const UserModel = require("../model/user");
+const bcrypt = require("bcrypt");
+const authMiddleware = require("../middleware/authMiddleware");
+
+const jwt = require("jsonwebtoken");
+const secretKey = "qwerty"; // Replace with your actual secret key
 
 const express = require("express");
 
 const router = express.Router();
 
 //Post Method
-router.post("/post", async (req, res) => {
+router.post("/post", authMiddleware, async (req, res) => {
   const data = new QuestionModel({
     title: req.body.title,
     description: req.body.description,
@@ -23,43 +29,47 @@ router.post("/post", async (req, res) => {
 });
 
 //Get all Method
-router.get("/getAllQuestion", async (req, res) => {
+router.get("/getAllQuestion", authMiddleware, async (req, res) => {
   const question = await QuestionModel.find();
   res.status(200).send(question);
 });
 
 //post by getQuestionByFilterCategory
-router.post("/getQuestionByFilterCategory", async (req, res) => {
-  const category = req.body.category;
-  const pageIndex = req.body.pageIndex;
-  const pageSize = req.body.pageSize;
+router.post(
+  "/getQuestionByFilterCategory",
+  authMiddleware,
+  async (req, res) => {
+    const category = req.body.category;
+    const pageIndex = req.body.pageIndex;
+    const pageSize = req.body.pageSize;
 
-  try {
-    let query = category === "All" ? {} : { category };
+    try {
+      let query = category === "All" ? {} : { category };
 
-    const questions = await QuestionModel.find(query)
-      .skip(pageIndex * pageSize)
-      .limit(pageSize);
+      const questions = await QuestionModel.find(query)
+        .skip(pageIndex * pageSize)
+        .limit(pageSize);
 
-    const count = await QuestionModel.countDocuments(query);
+      const count = await QuestionModel.countDocuments(query);
 
-    res.status(200).send({ questions, count });
-  } catch (err) {
-    res.status(500).send(err);
+      res.status(200).send({ questions, count });
+    } catch (err) {
+      res.status(500).send(err);
+    }
   }
-});
+);
 
 //Update by ID Method
-router.patch("/updateQuestion/:id", (req, res) => {
+router.patch("/updateQuestion/:id", authMiddleware, (req, res) => {
   res.send("Update by ID API");
 });
 
 //Delete by ID Method
-router.delete("/deleteQuestion/:id", (req, res) => {
+router.delete("/deleteQuestion/:id", authMiddleware, (req, res) => {
   res.send("Delete by ID API");
 });
 
-router.get("/getSubjectCategory", async (req, res) => {
+router.get("/getSubjectCategory", authMiddleware, async (req, res) => {
   try {
     const categories = await CategoryModel.find();
     res.status(200).send(categories);
@@ -68,7 +78,7 @@ router.get("/getSubjectCategory", async (req, res) => {
   }
 });
 
-router.post("/postSubjectCategory", async (req, res) => {
+router.post("/postSubjectCategory", authMiddleware, async (req, res) => {
   const data = new CategoryModel({
     value: req.body.value,
     viewValue: req.body.viewValue,
@@ -82,7 +92,7 @@ router.post("/postSubjectCategory", async (req, res) => {
   }
 });
 
-router.get("/getAnalyticsData", async (req, res) => {
+router.get("/getAnalyticsData", authMiddleware, async (req, res) => {
   try {
     const result = await QuestionModel.aggregate([
       {
@@ -105,6 +115,68 @@ router.get("/getAnalyticsData", async (req, res) => {
   } catch (err) {
     console.error("Error fetching data:", err);
     res.status(500).json({ error: "Error fetching data" });
+  }
+});
+
+// sign up user
+
+router.post("/signup", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Check if the user already exists
+    const existingUser = await UserModel.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new user
+    const newUser = new UserModel({
+      email,
+      password: hashedPassword,
+    });
+
+    await newUser.save();
+
+    // Here you might generate a JWT token for authenticated users
+    const token = jwt.sign({ email, password }, secretKey, {
+      expiresIn: "1h",
+    });
+
+    res.status(201).json({ message: "User created successfully", token });
+  } catch (error) {
+    res.status(500).json({ message: "An error occurred" });
+  }
+});
+
+// Login route
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Check if the user exists
+    const user = await UserModel.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: "Authentication failed" });
+    }
+
+    // Compare the provided password with the hashed password in the database
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Authentication failed" });
+    }
+
+    // Here you might generate a JWT token for authenticated users
+    const token = jwt.sign({ email, password }, secretKey, {
+      expiresIn: "1h",
+    });
+
+    res.status(200).json({ message: "Authentication successful", token });
+  } catch (error) {
+    res.status(500).json({ message: "An error occurred" });
   }
 });
 
