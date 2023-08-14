@@ -102,16 +102,28 @@ router.get("/getAnalyticsData", authMiddleware, async (req, res) => {
         },
       },
       {
+        $group: {
+          _id: null,
+          totalCount: { $sum: "$count" },
+          results: {
+            $push: {
+              category: "$_id.category",
+              count: "$count",
+              color: "$_id.color",
+            },
+          },
+        },
+      },
+      {
         $project: {
           _id: 0,
-          color: "$_id.color",
-          category: "$_id.category",
-          count: 1,
+          results: "$results",
+          totalCount: 1,
         },
       },
     ]);
 
-    res.json(result);
+    res.json(result[0]);
   } catch (err) {
     console.error("Error fetching data:", err);
     res.status(500).json({ error: "Error fetching data" });
