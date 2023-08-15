@@ -45,13 +45,39 @@ router.post(
     const category = req.body.category;
     const pageIndex = req.body.pageIndex;
     const pageSize = req.body.pageSize;
+    const sharedLevel = req.body.sharedLevel;
+    const userId = req.body.userId;
 
     try {
-      let query = category === "All" ? {} : { category };
+      let query = {};
 
-      const questions = await QuestionModel.find(query)
-        .skip(pageIndex * pageSize)
-        .limit(pageSize);
+      if (category !== "All") {
+        query.category = category;
+      }
+
+      if (sharedLevel === "public" || sharedLevel === "private") {
+        query.sharedLevel = sharedLevel;
+
+        if (sharedLevel === "private") {
+          query.userId = mongoose.Types.ObjectId(userId);
+        }
+      }
+
+      const pipeline = [
+        {
+          $match: query, // Replace query with your actual query object
+        },
+        {
+          $skip: pageIndex * pageSize,
+        },
+        {
+          $limit: pageSize,
+        },
+      ];
+
+      console.log(pipeline);
+
+      const questions = await QuestionModel.aggregate(pipeline);
 
       const count = await QuestionModel.countDocuments(query);
 
@@ -118,15 +144,27 @@ router.post("/postSubjectCategory", authMiddleware, async (req, res) => {
   }
 });
 
-router.get("/getAnalyticsData", authMiddleware, async (req, res) => {
+router.get("/getAnalyticsData/:userId", authMiddleware, async (req, res) => {
   try {
+    const userId = req.params.userId;
     const result = await QuestionModel.aggregate([
       {
         $group: {
           _id: { category: "$category", color: "$color" },
           count: { $sum: 1 },
           privateCount: {
-            $sum: { $cond: [{ $eq: ["$sharedLevel", "private"] }, 1, 0] },
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$sharedLevel", "private"] },
+                    { $eq: ["$userId", mongoose.Types.ObjectId(userId)] }, // Replace 'userId' with the actual user ID
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
           publicCount: {
             $sum: { $cond: [{ $eq: ["$sharedLevel", "public"] }, 1, 0] },
