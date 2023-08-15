@@ -21,6 +21,14 @@ const questionSchema = new mongoose.Schema({
     required: true,
     type: String,
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  },
+  sharedLevel: {
+    type: String,
+    required: true,
+  },
 });
 
 module.exports = mongoose.model("Question", questionSchema);

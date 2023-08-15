@@ -1,6 +1,7 @@
 const QuestionModel = require("../model/question");
 const CategoryModel = require("../model/category");
 const UserModel = require("../model/user");
+const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const authMiddleware = require("../middleware/authMiddleware");
 
@@ -19,6 +20,8 @@ router.post("/post", authMiddleware, async (req, res) => {
     category: req.body.category,
     color: req.body.color,
     date: new Date(),
+    userId: mongoose.Types.ObjectId(req.body.userId),
+    sharedLevel: req.body.sharedLevel,
   });
   try {
     const dataToSave = await data.save();
@@ -60,8 +63,31 @@ router.post(
 );
 
 //Update by ID Method
-router.patch("/updateQuestion/:id", authMiddleware, (req, res) => {
-  res.send("Update by ID API");
+router.patch("/updateQuestion", async (req, res) => {
+  await QuestionModel.updateMany(
+    {},
+    { $set: { userId: mongoose.Types.ObjectId("64d8949da5fa50fdea93b7c3") } }
+  );
+  res.send("Update by user id updated");
+});
+
+router.get("/test", async (req, res) => {
+  const result = await QuestionModel.aggregate([
+    {
+      $group: {
+        _id: { category: "$category", color: "$color" },
+        count: { $sum: 1 },
+        privateCount: {
+          $sum: { $cond: [{ $eq: ["$sharedLevel", "private"] }, 1, 0] },
+        },
+        publicCount: {
+          $sum: { $cond: [{ $eq: ["$sharedLevel", "public"] }, 1, 0] },
+        },
+      },
+    },
+  ]);
+
+  res.json(result);
 });
 
 //Delete by ID Method
@@ -99,17 +125,27 @@ router.get("/getAnalyticsData", authMiddleware, async (req, res) => {
         $group: {
           _id: { category: "$category", color: "$color" },
           count: { $sum: 1 },
+          privateCount: {
+            $sum: { $cond: [{ $eq: ["$sharedLevel", "private"] }, 1, 0] },
+          },
+          publicCount: {
+            $sum: { $cond: [{ $eq: ["$sharedLevel", "public"] }, 1, 0] },
+          },
         },
       },
       {
         $group: {
           _id: null,
           totalCount: { $sum: "$count" },
+          privateCount: { $sum: "$privateCount" }, // Sum privateCounts
+          publicCount: { $sum: "$publicCount" }, // Sum publicCounts
           results: {
             $push: {
               category: "$_id.category",
               count: "$count",
               color: "$_id.color",
+              privateCount: "$privateCount",
+              publicCount: "$publicCount",
             },
           },
         },
@@ -119,6 +155,8 @@ router.get("/getAnalyticsData", authMiddleware, async (req, res) => {
           _id: 0,
           results: "$results",
           totalCount: 1,
+          privateCount: 1,
+          publicCount: 1,
         },
       },
     ]);
@@ -151,14 +189,18 @@ router.post("/signup", async (req, res) => {
       password: hashedPassword,
     });
 
-    await newUser.save();
+    const user = await newUser.save();
 
     // Here you might generate a JWT token for authenticated users
     const token = jwt.sign({ email, password }, secretKey, {
       expiresIn: "1h",
     });
 
-    res.status(201).json({ message: "User created successfully", token });
+    res.status(201).json({
+      message: "User created successfully",
+      token,
+      userId: user._id.toString(),
+    });
   } catch (error) {
     res.status(500).json({ message: "An error occurred" });
   }
@@ -186,7 +228,11 @@ router.post("/login", async (req, res) => {
       expiresIn: "1h",
     });
 
-    res.status(200).json({ message: "Authentication successful", token });
+    res.status(200).json({
+      message: "Authentication successful",
+      token,
+      userId: user._id.toString(),
+    });
   } catch (error) {
     res.status(500).json({ message: "An error occurred" });
   }
