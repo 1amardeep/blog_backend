@@ -7,8 +7,18 @@ const bodyParser = require("body-parser");
 const path = require("path");
 const PORT = process.env.PORT || 3000;
 const mongoString = process.env.DATABASE_URL;
+const MessageModel = require("./model/message");
+
+const socketIo = require("socket.io");
+const http = require("http");
 
 const app = express();
+
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: { origin: "*" },
+});
+
 app.use(bodyParser.json());
 app.use(cors());
 app.use("/", express.static(path.join(__dirname, "angular")));
@@ -32,6 +42,32 @@ database.once("connected", () => {
   console.log("Database Connected");
 });
 
-app.listen(PORT, () => {
+io.on("connection", (socket) => {
+  console.log("A user connected");
+
+  // Join room
+  socket.on("join", (room) => {
+    socket.join(room);
+  });
+
+  // Handle chat messages
+  socket.on("chat message", async (data) => {
+    try {
+      const { username, message, room } = data;
+      const newMessage = new MessageModel({ username, message, room });
+      await newMessage.save();
+
+      io.to(room).emit("chat message", { username, message });
+    } catch (error) {
+      console.error("Error saving message:", error);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`Server Started at ${PORT}`);
 });
